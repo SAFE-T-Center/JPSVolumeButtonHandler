@@ -106,12 +106,16 @@ static CGFloat minVolume                    = 0.4f;
                   withOptions:_sessionOptions
                         error:&error];
     if (error) {
-        NSLog(@"%@", error);
+        if (self.errorBlock) {
+            self.errorBlock(error);
+        }
         return;
     }
     [self.session setActive:YES error:&error];
     if (error) {
-        NSLog(@"%@", error);
+        if (self.errorBlock) {
+            self.errorBlock(error);
+        }
         return;
     }
 
@@ -157,6 +161,9 @@ static CGFloat minVolume                    = 0.4f;
             NSError *error = nil;
             [self.session setActive:YES error:&error];
             if (error) {
+                if (self.errorBlock) {
+                    self.errorBlock(error);
+                }
                 NSLog(@"%@", error);
             }
             break;
@@ -189,11 +196,12 @@ static CGFloat minVolume                    = 0.4f;
 
 #pragma mark - Convenience
 
-+ (instancetype)volumeButtonHandlerWithUpBlock:(JPSVolumeButtonBlock)upBlock downBlock:(JPSVolumeButtonBlock)downBlock {
++ (instancetype)volumeButtonHandlerWithUpBlock:(JPSVolumeButtonBlock)upBlock downBlock:(JPSVolumeButtonBlock)downBlock errorBlock:(JPSVolumeErrorBlock)errorBlock {
     JPSVolumeButtonHandler *instance = [[JPSVolumeButtonHandler alloc] init];
     if (instance) {
         instance.upBlock = upBlock;
         instance.downBlock = downBlock;
+        instance.errorBlock = errorBlock;
     }
     return instance;
 }

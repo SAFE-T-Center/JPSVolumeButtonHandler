@@ -10,6 +10,7 @@
 #import <AVFoundation/AVFoundation.h>
 
 typedef void (^JPSVolumeButtonBlock)(void);
+typedef void (^JPSVolumeErrorBlock)(NSError *);
 
 @interface JPSVolumeButtonHandler : NSObject
 
@@ -18,6 +19,9 @@ typedef void (^JPSVolumeButtonBlock)(void);
 
 // A block to run when the volume down button is pressed
 @property (nonatomic, copy) JPSVolumeButtonBlock downBlock;
+
+// A block to handle errors of the volume button handler
+@property (nonatomic, copy) JPSVolumeErrorBlock errorBlock;
 
 // A shared audio session category
 @property (nonatomic, strong) NSString * sessionCategory;
@@ -32,6 +36,6 @@ typedef void (^JPSVolumeButtonBlock)(void);
 - (void)useExactJumpsOnly:(BOOL)enabled;
 
 // Returns a button handler with the specified up/down volume button blocks
-+ (instancetype)volumeButtonHandlerWithUpBlock:(JPSVolumeButtonBlock)upBlock downBlock:(JPSVolumeButtonBlock)downBlock;
++ (instancetype)volumeButtonHandlerWithUpBlock:(JPSVolumeButtonBlock)upBlock downBlock:(JPSVolumeButtonBlock)downBlock errorBlock:(JPSVolumeErrorBlock)errorBlock;
 
 @end
