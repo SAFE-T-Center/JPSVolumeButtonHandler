@@ -9,9 +9,6 @@
 #import "JPSVolumeButtonHandler.h"
 #import <MediaPlayer/MediaPlayer.h>
 
-// Comment/uncomment out NSLog to enable/disable logging
-#define JPSLog(fmt, ...) //NSLog(fmt, __VA_ARGS__)
-
 static NSString *const sessionVolumeKeyPath = @"outputVolume";
 static void *sessionContext                 = &sessionContext;
 static CGFloat maxVolume                    = 0.6f;
@@ -153,11 +150,11 @@ static CGFloat minVolume                    = 0.4f;
     NSInteger interuptionType = [[interuptionDict valueForKey:AVAudioSessionInterruptionTypeKey] integerValue];
     switch (interuptionType) {
         case AVAudioSessionInterruptionTypeBegan:
-            JPSLog(@"Audio Session Interruption case started.", nil);
+            [self addLog:@"Audio Session Interruption case started."];
             break;
         case AVAudioSessionInterruptionTypeEnded:
         {
-            JPSLog(@"Audio Session Interruption case ended.", nil);
+            [self addLog:@"Audio Session Interruption case ended."];
             NSError *error = nil;
             [self.session setActive:YES error:&error];
             if (error) {
@@ -169,7 +166,7 @@ static CGFloat minVolume                    = 0.4f;
             break;
         }
         default:
-            JPSLog(@"Audio Session Interruption Notification case default.", nil);
+            [self addLog:@"Audio Session Interruption Notification case default."];
             break;
     }
 }
@@ -194,14 +191,24 @@ static CGFloat minVolume                    = 0.4f;
     }
 }
 
+- (void)addLog:(NSString *)log {
+    if (self.debugBlock) {
+        self.debugBlock(log);
+    }
+}
+
 #pragma mark - Convenience
 
-+ (instancetype)volumeButtonHandlerWithUpBlock:(JPSVolumeButtonBlock)upBlock downBlock:(JPSVolumeButtonBlock)downBlock errorBlock:(JPSVolumeErrorBlock)errorBlock {
++ (instancetype)volumeButtonHandlerWithUpBlock:(JPSVolumeButtonBlock)upBlock
+                                     downBlock:(JPSVolumeButtonBlock)downBlock
+                                    errorBlock:(JPSVolumeErrorBlock)errorBlock
+                                    debugBlock:(JPSVolumeDebugBlock)debugBlock {
     JPSVolumeButtonHandler *instance = [[JPSVolumeButtonHandler alloc] init];
     if (instance) {
         instance.upBlock = upBlock;
         instance.downBlock = downBlock;
         instance.errorBlock = errorBlock;
+        instance.debugBlock = debugBlock;
     }
     return instance;
 }
@@ -212,6 +219,7 @@ static CGFloat minVolume                    = 0.4f;
     if (context == sessionContext) {
         if (!self.appIsActive) {
             // Probably control center, skip blocks
+            [self addLog:@"app isn't active, skip blocks"];
             return;
         }
         
@@ -220,10 +228,12 @@ static CGFloat minVolume                    = 0.4f;
 
         if (self.disableSystemVolumeHandler && newVolume == self.initialVolume) {
             // Resetting volume, skip blocks
+            [self addLog:@"Resetting volume, skip blocks"];
             return;
         } else if (self.isAdjustingInitialVolume) {
             if (newVolume == maxVolume || newVolume == minVolume) {
                 // Sometimes when setting initial volume during setup the callback is triggered incorrectly
+                [self addLog:@"max or min values, skip blocks"];
                 return;
             }
             self.isAdjustingInitialVolume = NO;
@@ -231,12 +241,12 @@ static CGFloat minVolume                    = 0.4f;
 
         CGFloat difference = fabs(newVolume-oldVolume);
 
-        JPSLog(@"Old Vol:%f New Vol:%f Difference = %f", (double)oldVolume, (double)newVolume, (double) difference);
+        [self addLog:[NSString stringWithFormat:@"Old Vol:%f New Vol:%f Difference = %f", (double)oldVolume, (double)newVolume, (double)difference]];
 
         if (_exactJumpsOnly && difference < .062 && (newVolume == 1. || newVolume == 0)) {
-            JPSLog(@"Using a non-standard Jump of %f (%f-%f) which is less than the .0625 because a press of the volume button resulted in hitting min or max volume", difference, oldVolume, newVolume);
+            [self addLog:[NSString stringWithFormat:@"Using a non-standard Jump of %f (%f-%f) which is less than the .0625 because a press of the volume button resulted in hitting min or max volume", difference, oldVolume, newVolume]];
         } else if (_exactJumpsOnly && (difference > .063 || difference < .062)) {
-            JPSLog(@"Ignoring non-standard Jump of %f (%f-%f), which is not the .0625 a press of the actually volume button would have resulted in.", difference, oldVolume, newVolume);
+            [self addLog:[NSString stringWithFormat:@"Ignoring non-standard Jump of %f (%f-%f), which is not the .0625 a press of the actually volume button would have resulted in.", difference, oldVolume, newVolume]];
             [self setInitialVolume];
             return;
         }
@@ -249,6 +259,7 @@ static CGFloat minVolume                    = 0.4f;
 
         if (!self.disableSystemVolumeHandler) {
             // Don't reset volume if default handling is enabled
+            [self addLog:@"Don't reset volume, default handling is enabled"];
             return;
         }
 
