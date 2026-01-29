@@ -28,6 +28,8 @@ static CGFloat minVolume                    = 0.4f;
 @property (nonatomic, assign) NSTimeInterval lastPhotoTimestamp;
 // used to prevent incorrect firing of event during start of the handler
 @property (nonatomic, assign) NSTimeInterval startTimestamp;
+@property (nonatomic, assign) NSTimeInterval ignoreUntil;
+@property (nonatomic, assign) BOOL deviseWasConnectedDuringLastCheck;
 
 @end
 
@@ -65,6 +67,7 @@ static CGFloat minVolume                    = 0.4f;
 
 - (void)startHandler:(BOOL)disableSystemVolumeHandler {
     self.startTimestamp = [[NSDate date] timeIntervalSince1970];
+    self.deviseWasConnectedDuringLastCheck = [self hasExternalAudioAccessory];
 
     [self setupSession];
     self.volumeView.hidden = NO; // Start visible to prevent changes made during setup from showing default volume
@@ -122,6 +125,11 @@ static CGFloat minVolume                    = 0.4f;
         return;
     }
 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(audioRouteChanged:)
+                                                 name:AVAudioSessionRouteChangeNotification
+                                               object:nil];
+
     // Observe outputVolume
     [self.session addObserver:self
                    forKeyPath:sessionVolumeKeyPath
@@ -146,6 +154,31 @@ static CGFloat minVolume                    = 0.4f;
 
     self.volumeView.hidden = !self.disableSystemVolumeHandler;
 }
+
+- (void)audioRouteChanged:(NSNotification *)notification {
+    BOOL externalAudioIsConnected = [self hasExternalAudioAccessory];
+    if (self.deviseWasConnectedDuringLastCheck != externalAudioIsConnected) {
+        self.ignoreUntil = [[NSDate date] timeIntervalSince1970] + 1.0;
+    }
+
+    self.deviseWasConnectedDuringLastCheck = externalAudioIsConnected;
+}
+
+- (BOOL)hasExternalAudioAccessory {
+    AVAudioSessionRouteDescription *route =
+        [AVAudioSession sharedInstance].currentRoute;
+
+    for (AVAudioSessionPortDescription *port in route.outputs) {
+        NSString *type = port.portType;
+
+        if (![type isEqualToString:AVAudioSessionPortBuiltInSpeaker] &&
+            ![type isEqualToString:AVAudioSessionPortBuiltInReceiver]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
 
 - (void) useExactJumpsOnly:(BOOL)enabled{
     _exactJumpsOnly = enabled;
@@ -259,8 +292,7 @@ static CGFloat minVolume                    = 0.4f;
 
         NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
 
-        // 1.0 - is a minimum required interval between volume changes and period of ignorance after starting of the handler
-        if (now - self.lastPhotoTimestamp < 1.0 || now - self.startTimestamp < 1.0) {
+        if (now - self.lastPhotoTimestamp < 1.0 || now - self.startTimestamp < 1.0 || self.deviseWasConnectedDuringLastCheck != [self hasExternalAudioAccessory] || now < self.ignoreUntil || ![self hasExternalAudioAccessory]) {
             return;
         }
 
