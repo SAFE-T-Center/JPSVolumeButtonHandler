@@ -24,6 +24,10 @@ static CGFloat minVolume                    = 0.4f;
 @property (nonatomic, assign) BOOL             disableSystemVolumeHandler;
 @property (nonatomic, assign) BOOL             isAdjustingInitialVolume;
 @property (nonatomic, assign) BOOL             exactJumpsOnly;
+// used to correctly handle volume change on iPhone 16
+@property (nonatomic, assign) NSTimeInterval lastPhotoTimestamp;
+// used to prevent incorrect firing of event during start of the handler
+@property (nonatomic, assign) NSTimeInterval startTimestamp;
 
 @end
 
@@ -60,6 +64,8 @@ static CGFloat minVolume                    = 0.4f;
 }
 
 - (void)startHandler:(BOOL)disableSystemVolumeHandler {
+    self.startTimestamp = [[NSDate date] timeIntervalSince1970];
+
     [self setupSession];
     self.volumeView.hidden = NO; // Start visible to prevent changes made during setup from showing default volume
     self.disableSystemVolumeHandler = disableSystemVolumeHandler;
@@ -250,7 +256,16 @@ static CGFloat minVolume                    = 0.4f;
             [self setInitialVolume];
             return;
         }
-        
+
+        NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
+
+        // 1.0 - is a minimum required interval between volume changes and period of ignorance after starting of the handler
+        if (now - self.lastPhotoTimestamp < 1.0 || now - self.startTimestamp < 1.0) {
+            return;
+        }
+
+        self.lastPhotoTimestamp = now;
+
         if (newVolume > oldVolume) {
             if (self.upBlock) self.upBlock();
         } else {
