@@ -36,8 +36,6 @@ static CGFloat minVolume                    = 0.4f;
     
     if (self) {
         _appIsActive = YES;
-        _sessionCategory = AVAudioSessionCategoryPlayback;
-        _sessionOptions = AVAudioSessionCategoryOptionMixWithOthers;
 
         _volumeView = [[MPVolumeView alloc] initWithFrame:CGRectMake(MAXFLOAT, MAXFLOAT, 0, 0)];
 
@@ -95,26 +93,8 @@ static CGFloat minVolume                    = 0.4f;
     
     self.isStarted = YES;
 
-    NSError *error = nil;
-    self.session = [AVAudioSession sharedInstance];
     // this must be done before calling setCategory or else the initial volume is reset
     [self setInitialVolume];
-    [self.session setCategory:_sessionCategory
-                  withOptions:_sessionOptions
-                        error:&error];
-    if (error) {
-        if (self.errorBlock) {
-            self.errorBlock(error);
-        }
-        return;
-    }
-    [self.session setActive:YES error:&error];
-    if (error) {
-        if (self.errorBlock) {
-            self.errorBlock(error);
-        }
-        return;
-    }
 
     // Observe outputVolume
     [self.session addObserver:self

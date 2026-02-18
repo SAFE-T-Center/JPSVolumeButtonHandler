@@ -27,11 +27,6 @@ typedef void (^JPSVolumeDebugBlock)(NSString *);
 // A block to handle debug logs of the volume button handler
 @property (nonatomic, copy) JPSVolumeDebugBlock debugBlock;
 
-// A shared audio session category
-@property (nonatomic, strong) NSString * sessionCategory;
-
-@property (nonatomic, assign) AVAudioSessionCategoryOptions sessionOptions;
-
 - (void)startHandler:(BOOL)disableSystemVolumeHandler;
 - (void)stopHandler;
 
