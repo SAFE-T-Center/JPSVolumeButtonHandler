@@ -93,8 +93,19 @@ static CGFloat minVolume                    = 0.4f;
     
     self.isStarted = YES;
 
+    NSError *error = nil;
+    self.session = [AVAudioSession sharedInstance];
+
     // this must be done before calling setCategory or else the initial volume is reset
     [self setInitialVolume];
+
+    [self.session setActive:YES error:&error];
+    if (error) {
+        if (self.errorBlock) {
+            self.errorBlock(error);
+        }
+        return;
+    }
 
     // Observe outputVolume
     [self.session addObserver:self
